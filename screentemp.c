@@ -1,8 +1,20 @@
-/* Original code by Ted Unangst:
- * https://flak.tedunangst.com/post/sct-set-color-temperature
- * Additions by Steven Biele
- * (location and time based setting) */
-/* public domain, do as you wish */
+/* 
+* Copyright (c) 2015 Ted Unangst <tedu@openbsd.org>
+* Copyright (c) 2020 Steven Biele
+*
+* Permission to use, copy, modify, and distribute this software for any
+* purpose with or without fee is hereby granted, provided that the above
+* copyright notice and this permission notice appear in all copies.
+*
+* THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+* WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+* MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+* ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+* WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+* ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+* OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+*/
+
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xatom.h>
@@ -13,7 +25,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <math.h>
-
 
 /* cribbed from redshift, but truncated with 500K steps */
 static const struct { float r; float g; float b; } whitepoints[] = {
@@ -45,7 +56,6 @@ int set_gamma(int temp, Display *dpy)
 {
 	int screen = DefaultScreen(dpy);
 	Window root = RootWindow(dpy, screen);
-
 	XRRScreenResources *res = XRRGetScreenResourcesCurrent(dpy, root);
 
 	if (temp < 1000 || temp > 10000)
@@ -57,16 +67,13 @@ int set_gamma(int temp, Display *dpy)
 	double gammar = AVG(r);
 	double gammag = AVG(g);
 	double gammab = AVG(b);
-
 	int num_crtcs = res->ncrtc;
+
 	for (int c = 0; c < res->ncrtc; c++) {
 		int crtcxid = res->crtcs[c];
 		XRRCrtcInfo *crtc_info = XRRGetCrtcInfo(dpy, res, crtcxid);
-
 		int size = XRRGetCrtcGammaSize(dpy, crtcxid);
-
 		XRRCrtcGamma *crtc_gamma = XRRAllocGamma(size);
-
 		for (int i = 0; i < size; i++) {
 			double g = 65535.0 * i / size;
 			crtc_gamma->red[i] = g * gammar;
@@ -74,7 +81,6 @@ int set_gamma(int temp, Display *dpy)
 			crtc_gamma->blue[i] = g * gammab;
 		}
 		XRRSetCrtcGamma(dpy, crtcxid, crtc_gamma);
-
 		XFree(crtc_gamma);
 	}
 }
@@ -82,7 +88,6 @@ int set_gamma(int temp, Display *dpy)
 int calculate_temp()
 {
     int ctemp;
-
     time_t now = time(NULL);
     struct tm *now2 = localtime(&now);
     char now3[5];
@@ -111,19 +116,12 @@ int calculate_temp()
             interval = 600;
             break;
     }
-
-    //printf("Current time is %s.\n", now3);
-    //printf("Current minutes are %d.\n", minutes);
-    //printf("Calculated temperature is %d.\n", ctemp);
-    //printf("Interval is %d.\n", interval);
-
     return ctemp;
 }
 
 int main(int argc, char **argv)
 {
 	Display *dpy = XOpenDisplay(NULL);
-
 	int temp = 6500;
     interval = 120;
 	if (argc == 2) {
@@ -137,7 +135,5 @@ int main(int argc, char **argv)
             sleep(interval);
         }
     }
-
     XCloseDisplay(dpy);
 }
-
